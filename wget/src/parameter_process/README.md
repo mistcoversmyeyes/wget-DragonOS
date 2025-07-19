@@ -16,8 +16,15 @@ fn main() {
     // 解析命令行参数
     let args = WgetArgs::parse_args();
     
-    // 处理调试模式
-    args.handle_debug();
+    // 检查调试模式是否开启调试模式
+    match is_debug_mode {
+        true => {
+            println!("调试模式开启");
+        }
+        false =>{
+            println!("调试模式关闭");
+        }
+    }
     
     // 获取URL
     println!("URL: {}", args.get_url());
