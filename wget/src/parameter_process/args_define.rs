@@ -15,7 +15,7 @@ pub struct WgetArgs {
     // ================= 选项 (Options) =================================
 
     // 选项0：输出debug 日志
-    #[arg(short = 'd', long = "debug", default_value = true)]
+    #[arg(short = 'd', long = "debug", default_value = "true")]
     pub debug: bool,
 
     // 选项1：输出文件名称
