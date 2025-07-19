@@ -9,14 +9,13 @@ pub struct WgetArgs {
     
     // ================= 位置参数 (Positional Arguments) =================================
     
-    // 位置参数0：URL
-    pub url: String,           // 这个参数没有使用 #arg 宏，为位置参数
-    
-    
+    // 位置参数0：URL (必选)
+    pub url: String,           
+
     // ================= 选项 (Options) =================================
 
     // 选项0：输出debug 日志
-    #[arg(short = 'd', long = "debug")]
+    #[arg(short = 'd', long = "debug", default_value = true)]
     pub debug: bool,
 
     // 选项1：输出文件名称
@@ -28,25 +27,17 @@ pub struct WgetArgs {
 }
 
 impl WgetArgs {
-    /// 解析命令行参数
+    // 解析命令行参数
     pub fn parse_args() -> Self {
         Self::parse()
     }
     
-    /// 处理调试模式
-    pub fn handle_debug(&self) {
-        match self.debug {
-            true => println!("调试模式开启"),
-            false => println!("调试模式关闭")
-        }
-    }
-    
-    /// 获取URL
+    // 获取URL
     pub fn get_url(&self) -> &str {
         &self.url
     }
     
-    /// 获取输出文件名
+    // 获取输出文件名
     pub fn get_output_file_name(&self) -> Option<&str> {
         self.output_file_name.as_deref()
     }
