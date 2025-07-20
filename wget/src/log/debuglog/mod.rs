@@ -1,2 +1,2 @@
-mod debuglog_events;
-mod debuglog_productor;
+mod events;
+mod productor;
