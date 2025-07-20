@@ -1,4 +1,4 @@
-use super::debuglog_events::DebugLogEvents;
+use super::events::DebugLogEvents;
 
 
 trait OnEventDebug {
