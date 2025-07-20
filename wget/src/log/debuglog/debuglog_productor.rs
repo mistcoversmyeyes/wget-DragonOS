@@ -1,14 +1,14 @@
 use super::debuglog_events::DebugLogEvents;
 
 
-trait DebugOnEvent {
+trait OnEventDebug {
     fn on_event(&self, event : &DebugLogEvents);
 }
 pub struct DebugLogProductor {
 
 }
 
-impl DebugOnEvent for DebugLogProductor {
+impl OnEventDebug for DebugLogProductor {
     fn on_event(&self, event : &DebugLogEvents){
         match event {
             DebugLogEvents::DebugModeSet => {
