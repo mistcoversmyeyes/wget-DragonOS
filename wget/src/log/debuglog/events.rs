@@ -8,6 +8,6 @@ pub enum DebugLogEvents {
     HTTPRequestSend(String),
     HTTPRequestReceived(String),
     StartDownload,
-    Downloading(u64),
+    Downloading(usize),
     DownloadFinished(String),
 }

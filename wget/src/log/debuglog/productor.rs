@@ -1,7 +1,7 @@
-use super::events::DebugLogEvents;
+pub use super::events::DebugLogEvents;
 
 
-trait OnEventDebug {
+pub trait OnEventDebug {
     fn on_event(&self, event : &DebugLogEvents);
 }
 pub struct DebugLogProductor {
