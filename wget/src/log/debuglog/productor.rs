@@ -8,6 +8,12 @@ pub struct DebugLogProductor {
 
 }
 
+impl DebugLogProductor {
+    pub fn new() -> Self {
+        DebugLogProductor {  }
+    }
+}
+
 impl OnEventDebug for DebugLogProductor {
     fn on_event(&self, event : &DebugLogEvents){
         match event {
