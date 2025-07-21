@@ -1,9 +1,9 @@
 use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::io::{self, Result, Read, Write};
 use std::time::Duration;
-use crate::log;
+use crate::log::on_event::OnEventHttp;
 use crate::web::http::http_events::HttpEvents;
-use crate::log::debuglog::productor::{DebugLogProductor, OnEventDebug};
+use crate::log::debuglog::productor::{DebugLogProductor};
 
 pub struct HttpClient {
     pub stream: TcpStream,

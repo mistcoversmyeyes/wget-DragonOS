@@ -1,8 +1,6 @@
 pub use crate::web::http::http_events::HttpEvents;
 
-pub trait OnEventDebug {
-    fn on_event(&self, event : &HttpEvents);
-}
+pub use crate::log::on_event::{OnEventHttp};
 pub struct DebugLogProductor {
 
 }
@@ -13,7 +11,7 @@ impl DebugLogProductor {
     }
 }
 
-impl OnEventDebug for DebugLogProductor {
+impl OnEventHttp for DebugLogProductor {
     fn on_event(&self, event : &HttpEvents){
         match event {
             HttpEvents::DebugModeSet => {
