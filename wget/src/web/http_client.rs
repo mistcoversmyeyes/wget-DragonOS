@@ -65,5 +65,22 @@ impl HttpClient {
         })
     }
 
+    
+    pub fn send_http_request(&mut self) -> Result<()> {
+        let http_get_request = format!("GET {} HTTP/1.1\r\n\
+                                                Host:{}\r\n"
+                                                , self.path
+                                                , self.host);
+
+        self.log_productor.on_event(&events::DebugLogEvents::HTTPRequestSend(http_get_request.clone()));
+
+        self.stream.write_all(http_get_request.as_bytes())?;
+
+        self.stream.write_all(b"\r\n")?;
+        Ok(())
+    }
+
+
+
 }
 
