@@ -1,4 +1,4 @@
-pub enum DebugLogEvents {
+pub enum HttpEvents {
     DebugModeSet,   
     URLAnalysing(String),
     HostAnalysing(String),

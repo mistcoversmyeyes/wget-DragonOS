@@ -2,7 +2,7 @@ use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::io::{self, Result, Read, Write};
 use std::time::Duration;
 use crate::log;
-use crate::log::debuglog::events;
+use crate::web::http_events::HttpEvents;
 use crate::log::debuglog::productor::{DebugLogProductor, OnEventDebug};
 
 pub struct HttpClient {
@@ -17,10 +17,10 @@ impl HttpClient {
     pub fn from_url(url: &str) -> Result<Self> {
         let log_productor = DebugLogProductor::new();
 
-        log_productor.on_event(&log::debuglog::DebugLogEvents::DebugModeSet);
+        log_productor.on_event(&HttpEvents::DebugModeSet);
 
 
-        log_productor.on_event(&log::debuglog::DebugLogEvents::URLAnalysing(url.to_string()));
+        log_productor.on_event(&HttpEvents::URLAnalysing(url.to_string()));
         // 假设 url 形如 "http://example.com/path"
         // 去除 "http://" 前缀
         let url = url.trim_start_matches("http://");
@@ -38,23 +38,23 @@ impl HttpClient {
         };
 
 
-        log_productor.on_event(&events::DebugLogEvents::HostAnalysing(domain.clone()));
+        log_productor.on_event(&HttpEvents::HostAnalysing(domain.clone()));
 
         let addr : SocketAddr = format!("{}:{}", domain, port)
         .to_socket_addrs()?
         .next()
         .expect(&format!("无法解析域名 {}:{}", domain, port));
 
-        log_productor.on_event(&events::DebugLogEvents::IPAnalysed(addr.ip().to_string()));
+        log_productor.on_event(&HttpEvents::IPAnalysed(addr.ip().to_string()));
 
-        log_productor.on_event(&events::DebugLogEvents::ConnectionEstablishing {
+        log_productor.on_event(&HttpEvents::ConnectionEstablishing {
             host: domain.clone(),
             ip: addr.ip().to_string(),
             port: addr.port(),
         });
 
         let stream = TcpStream::connect(addr)?;
-        log_productor.on_event(&events::DebugLogEvents::ConnectionEstablished);
+        log_productor.on_event(&HttpEvents::ConnectionEstablished);
 
         Ok(HttpClient {
             stream,
@@ -72,7 +72,7 @@ impl HttpClient {
                                                 , self.path
                                                 , self.host);
 
-        self.log_productor.on_event(&events::DebugLogEvents::HTTPRequestSend(http_get_request.clone()));
+        self.log_productor.on_event(&HttpEvents::HTTPRequestSend(http_get_request.clone()));
 
         self.stream.write_all(http_get_request.as_bytes())?;
 
