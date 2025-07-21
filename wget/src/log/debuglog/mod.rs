@@ -1,2 +1,2 @@
 mod events;
-mod productor;
+pub mod productor;
