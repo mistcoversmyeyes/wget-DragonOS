@@ -146,6 +146,10 @@ impl HttpClient {
         }
         None
     }
+
+    // 返回给定的去除响应头部从响应体开始的http响应网络流
+    pub fn get_content_stream
+
 }
 
 
