@@ -1,5 +1,5 @@
 use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
-use std::io::{self, Result, Read, Write};
+use std::io::{self, Result, Read, Write, Cursor};
 use std::time::Duration;
 use crate::log;
 use crate::web::http::http_events::HttpEvents;
@@ -146,9 +146,33 @@ impl HttpClient {
         }
         None
     }
+    /// 返回一个实现了 Read trait 的类型，从响应体开始读取 HTTP 响应内容
+    /// 注意：调用前应先发送 GET 请求
+    pub fn get_content_stream(&mut self) -> io::Result<impl Read + '_> {
+        // 读取响应头，找到 \r\n\r\n 的分界点
+        let mut buf = Vec::with_capacity(8192);
+        let mut header_end = None;
+        let mut tmp = [0u8; 1024];
 
-    // 返回给定的去除响应头部从响应体开始的http响应网络流
-    pub fn get_content_stream
+        while header_end.is_none() {
+            let n = self.stream.read(&mut tmp)?;
+            if n == 0 {
+                break;
+            }
+            buf.extend_from_slice(&tmp[..n]);
+            if let Some(pos) = twoway::find_bytes(&buf, b"\r\n\r\n") {
+                header_end = Some(pos + 4);
+            }
+        }
+
+        let body_start = header_end.unwrap_or(buf.len());
+        // 剩余数据为响应体的开头部分
+        let mut body = buf.split_off(body_start);
+
+        // 创建一个组合流，先读 body，再读 self.stream
+        let cursor = Cursor::new(body);
+        Ok(cursor.chain(&mut self.stream))
+    }
 
 }
 
@@ -159,6 +183,7 @@ mod tests {
 use std::io::{Read, Write};
 use std::net::{TcpListener};
 use std::thread;
+use std::io::{Cursor, Chain};
 
     use super::*;
 

@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.4", features = ["derive"] }
+twoway = "0.2.2"
 url = "2.4"  # 用于URL解析和验证
