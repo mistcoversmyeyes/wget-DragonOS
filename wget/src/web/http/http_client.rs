@@ -68,7 +68,7 @@ impl HttpClient {
 
     
     pub fn send_http_head_request(&mut self ) {
-        let host_header = format!("Host:{}", self.host);
+        let host_header = format!("Host: {}", self.host);
         let http_head_request : HttpRequest = HttpRequest::HEAD {   
                                                                     path: &self.path,
                                                                     protocol_version: HttpProtocolVersion::Http11,
@@ -80,7 +80,7 @@ impl HttpClient {
         self.stream.write_all(&request_content.as_bytes());
     }
     pub fn send_http_get_request(&mut self) {
-        let host_header = format!("Host:{}", self.host);
+        let host_header = format!("Host: {}", self.host);
         let http_get_request: HttpRequest = HttpRequest::GET {
             path: &self.path,
             protocol_version: HttpProtocolVersion::Http11,
@@ -92,6 +92,60 @@ impl HttpClient {
         self.stream.write_all(&request_content.as_bytes());
     }
 
+    /// 解析 Http 响应报文以获取要下载的文件的元信息,包括 Content-type, charset
+    /// 假设Http的 响应格式如下
+    /// ```
+    /// HTTP/1.1 200 OK
+    /// Content-Type: image/png
+    /// Content-Length: 12345
+    /// Last-Modified: Wed, 21 Oct 2015 07:28:00 GMT
+    /// Connection: keep-alive
+    /// // etc.
+    /// // 以上 Headers 的各个字段顺序仅供参考，解析的时候需要使用正则表达式匹配
+    /// ```
+    pub fn get_file_length (&mut self) -> Option<usize> {
+        // 发送获取 响应头部 的请求信息
+        self.send_http_head_request();
+
+        // 创建接收缓冲区
+        let mut buf: [u8; 4096] = [0u8; 4096];
+
+        // 创建需要将接收到的响应暂存的位置
+        let mut response: String = String::new();
+        loop {
+            match self.stream.read(&mut buf) {
+                Ok(n) => {
+                    // 检查是否读到了末尾，http 响应行 + 响应头 以 \r\n\r\n 结束
+                    let cur_str = &*String::from_utf8_lossy(&buf[..n]);
+
+                    if cur_str.contains("\r\n\r\n") {
+                        // 将读取到的数据追加到 response 字符串中,并结束读取
+                        response.push_str(cur_str);
+                        break;
+                    }
+                    else {
+                        // 将读取到的数据追加到 response 字符串中
+                        response.push_str(cur_str);
+                    }
+                }
+                Err(_e) => {
+                    break;
+                }
+            }
+        }
+
+        // 解析 Content-Length
+        for line in response.lines() {
+            if line.to_ascii_lowercase().starts_with("content-length:") {
+                if let Some(len_str) = line.split(':').nth(1) {
+                    if let Ok(len) = len_str.trim().parse::<usize>() {
+                        return Some(len);
+                    }
+                }
+            }
+        }
+        None
+    }
 }
 
 
@@ -149,5 +203,18 @@ use std::thread;
         let n = client.stream.read(&mut buf).unwrap();
         let resp_str = String::from_utf8_lossy(&buf[..n]);
         assert!(resp_str.contains("HTTP/1.1 200 OK"));
+    }
+
+    #[test]
+    fn test_get_file_length() {
+        let response = "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 12345\r\n\r\n";
+        let addr = start_test_server(response);
+
+        let url = format!("http://{}", addr);
+        let mut client = HttpClient::from_url(&url).expect("Failed to create HttpClient");
+        client.send_http_head_request();
+
+        let len = client.get_file_length();
+        assert_eq!(len , Some(12345));
     }
 }
