@@ -4,13 +4,14 @@ use std::time::Duration;
 use crate::log;
 use crate::web::http::http_events::HttpEvents;
 use crate::log::debuglog::productor::{DebugLogProductor, OnEventDebug};
+use super::http_requests::{HttpProtocolVersion,HttpRequest};
 
 pub struct HttpClient {
-    pub stream: TcpStream,
-    pub host: String,
-    pub port: u16,
-    pub path: String,
-    pub log_productor : DebugLogProductor,
+    pub stream: TcpStream,  // 打开的tcp连接
+    pub host: String,       // 使用域名标识的主机名
+    pub port: u16,          // 连接的端口号
+    pub path: String,       // 资源路径
+    pub log_productor : DebugLogProductor,  
 }
 
 impl HttpClient {
@@ -93,3 +94,60 @@ impl HttpClient {
 
 }
 
+
+#[cfg(test)]
+mod tests {
+    
+use std::io::{Read, Write};
+use std::net::{TcpListener};
+use std::thread;
+
+    use super::*;
+
+    // Helper function to start a simple TCP server for testing
+    fn start_test_server(response: &'static str) -> std::net::SocketAddr {
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        thread::spawn(move || {
+            if let Ok((mut stream, _)) = listener.accept() {
+                let mut buf = [0u8; 1024];
+                let _ = stream.read(&mut buf);
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+
+        addr
+    }
+
+    #[test]
+    fn test_send_http_get_request() {
+        let response: &'static str = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+        let addr: SocketAddr = start_test_server(response);
+
+        let url: String = format!("http://{}", addr);
+        let mut client: HttpClient = HttpClient::from_url(&url).expect("Failed to create HttpClient");
+        client.send_http_get_request();
+
+        let mut buf: [u8; 1024] = [0u8; 1024];
+        let n: usize = client.stream.read(&mut buf).unwrap();
+        let resp_str: std::borrow::Cow<'_, str> = String::from_utf8_lossy(&buf[..n]);
+        assert!(resp_str.contains("HTTP/1.1 200 OK"));
+    }
+
+    #[test]
+    fn test_send_http_head_request() {
+        let response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+        let addr = start_test_server(response);
+
+        let url = format!("http://{}", addr);
+        let mut client = HttpClient::from_url(&url).expect("Failed to create HttpClient");
+        client.send_http_head_request();
+
+        let mut buf = [0u8; 1024];
+        let n = client.stream.read(&mut buf).unwrap();
+        let resp_str = String::from_utf8_lossy(&buf[..n]);
+        assert!(resp_str.contains("HTTP/1.1 200 OK"));
+    }
+}
