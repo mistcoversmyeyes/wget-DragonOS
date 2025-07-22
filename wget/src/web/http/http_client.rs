@@ -66,21 +66,30 @@ impl HttpClient {
     }
 
     
-    pub fn send_http_request(&mut self) -> Result<()> {
-        let http_get_request = format!("GET {} HTTP/1.1\r\n\
-                                                Host:{}\r\n"
-                                                , self.path
-                                                , self.host);
+    pub fn send_http_head_request(&mut self ) {
+        let host_header = format!("Host:{}", self.host);
+        let http_head_request : HttpRequest = HttpRequest::HEAD {   
+                                                                    path: &self.path,
+                                                                    protocol_version: HttpProtocolVersion::Http11,
+                                                                    request_head: &host_header 
+                                                                };
+        let request_content : String = http_head_request.to_string();
 
-        self.log_productor.on_event(&HttpEvents::HTTPRequestSend(http_get_request.clone()));
-
-        self.stream.write_all(http_get_request.as_bytes())?;
-
-        self.stream.write_all(b"\r\n")?;
-        Ok(())
+        self.log_productor.on_event(&HttpEvents::HTTPRequestSend(request_content.clone()));
+        self.stream.write_all(&request_content.as_bytes());
     }
+    pub fn send_http_get_request(&mut self) {
+        let host_header = format!("Host:{}", self.host);
+        let http_get_request: HttpRequest = HttpRequest::GET {
+            path: &self.path,
+            protocol_version: HttpProtocolVersion::Http11,
+            request_head: &host_header,
+        };
+        let request_content: String = http_get_request.to_string();
 
-
+        self.log_productor.on_event(&HttpEvents::HTTPRequestSend(request_content.clone()));
+        self.stream.write_all(&request_content.as_bytes());
+    }
 
 }
 
