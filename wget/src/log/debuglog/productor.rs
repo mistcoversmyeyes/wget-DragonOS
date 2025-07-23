@@ -108,9 +108,9 @@ mod tests {
     }   
 
     #[test]
-    fn test_on_http_request_received_event() {
+    fn test_on_content_lenght_analysed() {
         let productor = DebugLogProductor::get_instance();
-        productor.on_event(&HttpEvents::HTTPRequestReceived("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>...</html>".to_string()));     
+        productor.on_event(&&HttpEvents::ContentLengthAnalysed(1234));     
     }
 
     #[test]
