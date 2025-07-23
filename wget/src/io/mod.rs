@@ -4,7 +4,7 @@ use crate::parameter_process::WgetArgs;
 use std::io::{Read, Seek, SeekFrom, Write};
 
 
-pub struct FileDownload<'a> {
+pub struct FileDownloader<'a> {
     source : &'a mut dyn Read,
     destination : File,
     content_length: usize,
@@ -13,7 +13,7 @@ pub struct FileDownload<'a> {
 }
 
 
-impl<'a> FileDownload<'a> {
+impl<'a> FileDownloader<'a> {
     /// 给定一个已经去除了响应头内容的 网络流 `stream`, 命令行参数解析结果 `para` 和 获取到的文件内容大小 `content_length`
     /// 创建一个包含源网络流，目的文件，文件大小，已经下载的大小(offset)的执行下载工作的结构体。
     /// 默认从命令行参数的 <URL> 获取文件名，文件名为 <URL>字段的最后一个 '/' 后面的内容
@@ -37,7 +37,7 @@ impl<'a> FileDownload<'a> {
         // 创建文件
         let destination: File = File::create(file_path).unwrap();
 
-        FileDownload {
+        FileDownloader {
             source: stream,
             destination,
             content_length,
