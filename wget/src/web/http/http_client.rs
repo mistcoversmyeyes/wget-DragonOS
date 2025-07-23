@@ -11,12 +11,11 @@ pub struct HttpClient {
     pub host: String,       // 使用域名标识的主机名
     pub port: u16,          // 连接的端口号
     pub path: String,       // 资源路径
-    pub log_productor : DebugLogProductor,  
 }
 
 impl HttpClient {
     pub fn from_url(url: &str) -> Result<Self> {
-        let log_productor = DebugLogProductor::new();
+        let log_productor = DebugLogProductor::get_instance();
 
         log_productor.on_event(&HttpEvents::DebugModeSet);
 
@@ -62,7 +61,6 @@ impl HttpClient {
             host: domain,
             port,
             path,
-            log_productor,
         })
     }
 
@@ -76,7 +74,7 @@ impl HttpClient {
                                                                 };
         let request_content : String = http_head_request.to_string();
 
-        self.log_productor.on_event(&HttpEvents::HTTPRequestSend(request_content.clone()));
+        DebugLogProductor::get_instance().on_event(&HttpEvents::HTTPRequestSend(request_content.clone()));
         self.stream.write_all(&request_content.as_bytes());
     }
     pub fn send_http_get_request(&mut self) {
@@ -88,7 +86,7 @@ impl HttpClient {
         };
         let request_content: String = http_get_request.to_string();
 
-        self.log_productor.on_event(&HttpEvents::HTTPRequestSend(request_content.clone()));
+        DebugLogProductor::get_instance().on_event(&HttpEvents::HTTPRequestSend(request_content.clone()));
         self.stream.write_all(&request_content.as_bytes());
     }
 

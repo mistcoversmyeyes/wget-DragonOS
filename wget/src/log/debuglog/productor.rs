@@ -1,13 +1,21 @@
 pub use crate::events::http_events::HttpEvents;
-
 pub use crate::log::on_event::{OnEventHttp};
-pub struct DebugLogProductor {
+use std::sync::OnceLock;
 
+pub struct DebugLogProductor {
+    // 移除自引用字段，单例模式不需要实例持有自己的引用
 }
 
 impl DebugLogProductor {
-    pub fn new() -> Self {
-        DebugLogProductor {  }
+    // 私有构造函数，防止外部直接创建实例
+    fn new() -> Self {
+        DebugLogProductor {}
+    }
+
+    // 线程安全的单例获取方法
+    pub fn get_instance() -> &'static DebugLogProductor {
+        static INSTANCE: OnceLock<DebugLogProductor> = OnceLock::new();
+        INSTANCE.get_or_init(|| DebugLogProductor::new())
     }
 }
 
@@ -54,63 +62,69 @@ impl OnEventHttp for DebugLogProductor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
     #[test]
     fn test_on_debug_mode_set_event() {
-        let productor = DebugLogProductor {};
+        let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::DebugModeSet);
     }
+    
     #[test]
     fn test_on_url_analysing_event() {
-        let productor = DebugLogProductor {};
+        let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::URLAnalysing("http://example.com".to_string()));
     }
+    
     #[test]
     fn test_on_host_analysing_event() {
-        let productor = DebugLogProductor {};   
+        let productor = DebugLogProductor::get_instance();   
         productor.on_event(&HttpEvents::HostAnalysing("example.com".to_string()));
         productor.on_event(&HttpEvents::IPAnalysed("192.168.1.1".to_string()));
     }
+    
     #[test]
     fn test_on_connection_establishing_event() {
-        let productor = DebugLogProductor {};
+        let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::ConnectionEstablishing {
             host: "example.com".to_string(),
             ip: "192.168.1.1".to_string(),
             port: 80,
         }); 
-
     }
+    
     #[test]
     fn test_on_connection_established_event() {
-        let productor = DebugLogProductor {};
+        let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::ConnectionEstablished);
     }
 
     #[test]
     fn test_on_http_request_send_event() {
-        let productor = DebugLogProductor {};
+        let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::HTTPRequestSend("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".to_string()));
     }   
 
     #[test]
     fn test_on_http_request_received_event() {
-        let productor = DebugLogProductor {};
+        let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::HTTPRequestReceived("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>...</html>".to_string()));     
     }
 
     #[test]
     fn test_on_start_download_event() {
-        let productor = DebugLogProductor {};
+        let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::StartDownload);
     }
+    
     #[test]
     fn test_on_downloading_event() {
-        let productor = DebugLogProductor {};
+        let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::Downloading(1024));
     }
+    
     #[test]
     fn test_on_download_finished_event() {
-        let productor = DebugLogProductor {};
+        let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::DownloadFinished("output.txt".to_string()));
     }
 }
