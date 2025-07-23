@@ -1,6 +1,6 @@
-use std::{fs::File, net::TcpStream, path::{Path, PathBuf},env};
+use std::{env, fmt::DebugTuple, fs::File, net::TcpStream, path::{Path, PathBuf}};
 
-use crate::parameter_process::WgetArgs;
+use crate::{events::http_events::HttpEvents, log::{debuglog::productor::DebugLogProductor, on_event::{self, OnEventHttp}}, parameter_process::WgetArgs};
 use std::io::{Read, Seek, SeekFrom, Write};
 
 
@@ -59,13 +59,18 @@ impl<'a> FileDownloader<'a> {
         self.destination.seek(SeekFrom::Start(self.offset as u64))?;
         let mut total_written: usize = 0usize;
         let mut buf = [0u8; 8192];
+
+        // 开始下载内容
+        DebugLogProductor::get_instance().on_event(&HttpEvents::StartDownload);
         loop {
             let n = self.source.read(&mut buf)?;
             if n == 0 {
                 break;
             }
             self.destination.write_all(&buf[..n])?;
+            
             total_written += n as usize;
+            DebugLogProductor::get_instance().on_event(&HttpEvents::Downloading(total_written));
         }
         Ok(total_written)
     }

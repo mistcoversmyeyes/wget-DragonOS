@@ -137,15 +137,17 @@ impl HttpClient {
             if line.to_ascii_lowercase().starts_with("content-length:") {
                 if let Some(len_str) = line.split(':').nth(1) {
                     if let Ok(len) = len_str.trim().parse::<usize>() {
+                        DebugLogProductor::get_instance().on_event(&HttpEvents::ContentLengthAnalysed(len));
                         return Some(len);
                     }
                 }
             }
         }
+
         None
     }
+
     /// 返回一个实现了 Read trait 的类型，从响应体开始读取 HTTP 响应内容
-    /// 注意：调用前应先发送 GET 请求
     pub fn get_content_stream(&mut self) -> io::Result<impl Read + '_> {
         // 发送获取 文件 的请求信息
         self.send_http_get_request();
@@ -173,6 +175,7 @@ impl HttpClient {
 
         // 创建一个组合流，先读 body，再读 self.stream
         let cursor = Cursor::new(body);
+        DebugLogProductor::get_instance().on_event(&HttpEvents::ContentStreamGeted);
         Ok(cursor.chain(&mut self.stream))
     }
 
