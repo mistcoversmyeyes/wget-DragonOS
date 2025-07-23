@@ -147,6 +147,10 @@ impl HttpClient {
     /// 返回一个实现了 Read trait 的类型，从响应体开始读取 HTTP 响应内容
     /// 注意：调用前应先发送 GET 请求
     pub fn get_content_stream(&mut self) -> io::Result<impl Read + '_> {
+        // 发送获取 文件 的请求信息
+        self.send_http_get_request();
+
+
         // 读取响应头，找到 \r\n\r\n 的分界点
         let mut buf = Vec::with_capacity(8192);
         let mut header_end = None;
