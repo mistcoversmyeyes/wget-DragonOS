@@ -5,7 +5,7 @@ use std::io::{Read, Seek, SeekFrom, Write};
 
 
 pub struct FileDownload<'a> {
-    source : &'a mut TcpStream,
+    source : &'a mut dyn Read,
     destination : File,
     content_length: usize,
     offset : usize,            //为断点续传预留的
@@ -23,7 +23,7 @@ impl<'a> FileDownload<'a> {
     /// ```
     /// 对于以上示例，保存文件的路径为 "/home/username/tools/index.html"
     /// 
-    pub fn from_scratch(stream: &'a mut TcpStream, para: WgetArgs,content_length: usize) -> Self {
+    pub fn from_scratch(stream: &'a mut dyn Read, para: WgetArgs,content_length: usize) -> Self {
         let directory_prefix: PathBuf = env::current_dir().unwrap();
         // 获取 URL 最后的文件名部分
         let file_name = para.url
