@@ -43,8 +43,11 @@ impl OnEventHttp for DebugLogProductor {
             HttpEvents::HTTPRequestSend(req) => {
                 println!("DEBUG: 发送 HTTP 请求:\n{}", req);
             }
-            HttpEvents::HTTPRequestReceived(resp) => {
-                println!("DEBUG: 收到响应:\n{}", resp);
+            HttpEvents::ContentLengthAnalysed(file_size) => {
+                println!("DEBUG: 文件大小为: {}B", file_size);
+            }
+            HttpEvents::ContentStreamGeted => {
+                println!("DEBUG: 已解析要下载的文件流");
             }
             HttpEvents::StartDownload => {
                 println!("DEBUG: 开始下载数据...");
