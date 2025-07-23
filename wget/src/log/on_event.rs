@@ -1,4 +1,4 @@
-use crate::web::http::http_events::HttpEvents;
+use crate::events::http_events::HttpEvents;
 
 pub trait OnEventHttp {
     fn on_event(&self, event : &HttpEvents);

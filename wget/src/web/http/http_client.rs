@@ -2,7 +2,7 @@ use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::io::{self, Result, Read, Write, Cursor};
 use std::time::Duration;
 use crate::log::on_event::OnEventHttp;
-use crate::web::http::http_events::HttpEvents;
+use crate::events::http_events::HttpEvents;
 use crate::log::debuglog::productor::{DebugLogProductor};
 use super::http_requests::{HttpProtocolVersion,HttpRequest};
 

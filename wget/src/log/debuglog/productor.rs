@@ -1,4 +1,4 @@
-pub use crate::web::http::http_events::HttpEvents;
+pub use crate::events::http_events::HttpEvents;
 
 pub use crate::log::on_event::{OnEventHttp};
 pub struct DebugLogProductor {
