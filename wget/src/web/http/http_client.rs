@@ -97,6 +97,41 @@ impl HttpClient {
         self.stream.write_all(&request_content.as_bytes());
     }
 
+    /// 发送带Range头的HTTP GET请求，用于断点续传
+    /// `start_byte`: 开始下载的字节位置
+    pub fn send_http_get_request_with_range(&mut self, start_byte: usize) {
+        let headers = if start_byte > 0 {
+            format!("Host: {}\r\nRange: bytes={}-", self.host, start_byte)
+        } else {
+            format!("Host: {}", self.host)
+        };
+        // TODO: 将 Httpmethod 与http的请求头，请求行的其他内容解耦合
+        // method仅仅充当区分http请求方法的作用，不用于更进一步表示这个方法的一个请求
+        // TODO: 另外定义一个如下的数据结构用于结构化一个Http请求
+        // struct HttpRequest {
+        //     method: HttpMethod,
+        //     path_to_file: String,
+        //     protocal_version: HttpProtocolVersion,
+        //     request_header: RequestHeader{
+        //         field1: HttpHeaderField{
+        //             field_name: String,
+        //             field_value: String,
+        //         }
+        //         field2:
+        //         // ..... etc.
+        //     }
+        // }
+        let http_get_request: HttpRequest = HttpRequest::GET {
+            path: &self.path,
+            protocol_version: HttpProtocolVersion::Http11,
+            request_head: &headers,
+        };
+        let request_content: String = http_get_request.to_string();
+
+        DebugLogProductor::get_instance().on_event(&HttpEvents::HTTPRequestSend(request_content.clone()));
+        self.stream.write_all(&request_content.as_bytes());
+    }
+
     /// 解析 Http 响应报文以获取要下载的文件的元信息,包括 Content-type, charset
     /// 假设Http的 响应格式如下
     /// ```
@@ -156,6 +191,7 @@ impl HttpClient {
 
     /// 返回一个实现了 Read trait 的类型，从响应体开始读取 HTTP 响应内容
     pub fn get_content_stream(&mut self) -> io::Result<impl Read + '_> {
+        // TODO:添加 `have_downloaded_size` 函数参数，使用send_http_get_request_with_range() 方法替代原有的只能获取整个文件的方法。
         // 发送获取 文件 的请求信息
         self.send_http_get_request();
 
