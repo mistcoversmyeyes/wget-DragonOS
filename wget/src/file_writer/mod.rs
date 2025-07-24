@@ -63,15 +63,71 @@ impl<'a> FileDownloader<'a> {
             offset: 0,
         }
     }
-
-    pub fn from_name (){
-        // TODO: 给定新文件的文件名初始化
+    
+    /// 智能构造函数，根据命令行参数自动选择全新下载或断点续传
+    /// 如果设置了 `-c` 或 `--continue` 参数且本地文件存在，则进行断点续传
+    /// 否则进行全新下载
+    pub fn smart_new(stream: &'a mut dyn Read, para: WgetArgs, content_length: usize) -> std::io::Result<Self> {
+        // 获取文件路径
+        let directory_prefix: PathBuf = match para.directory_prefix.as_ref() {
+            Some(prefix) => PathBuf::from(prefix),
+            None => env::current_dir().unwrap(),
+        };
+        
+        let file_name = match para.output_file_name.as_ref() {
+            Some(name) => name.clone(),
+            None => {
+                para.url
+                .rsplit('/')
+                .next()
+                .expect("自动获取文件名失败")
+                .to_string()
+            },
+        };
+        
+        let file_path: PathBuf = directory_prefix.join(file_name);
+        
+        // 根据是否启用断点续传和文件是否存在来决定行为
+        let (destination, offset) = if para.continue_download && file_path.exists() {
+            // 断点续传模式
+            let file = std::fs::OpenOptions::new()
+                .write(true)
+                .append(true)
+                .open(&file_path)?;
+            
+            let metadata = file.metadata()?;
+            let current_size = metadata.len() as usize;
+            
+            if current_size >= content_length {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "本地文件已完整，无需继续下载"
+                ));
+            }
+            
+            println!("检测到本地文件，从 {} 字节处继续下载", current_size);
+            (file, current_size)
+        } else {
+            // 全新下载模式
+            if file_path.exists() && !para.continue_download {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    "文件已存在，使用 -c 选项进行断点续传，或删除现有文件"
+                ));
+            }
+            
+            let file = File::create(&file_path)?;
+            println!("开始全新下载");
+            (file, 0)
+        };
+        
+        Ok(FileDownloader {
+            source: stream,
+            destination,
+            content_length,
+            offset,
+        })
     }
-
-    pub fn from_name_and_prefix (){
-        // TODO: 给定保存的文件名和指定的目录前缀
-    }
-
 
     pub fn download(&mut self) -> std::io::Result<usize> {
         // 定位到断点
