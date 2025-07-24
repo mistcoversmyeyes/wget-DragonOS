@@ -5,30 +5,14 @@ mod file_writer;   // 文件I/O模块 ✓
 // 未来可能添加：
 // mod recursive;  // 递归模块 (HTML解析、URL队列等)
 
-use cli::WgetArgs;
-
-use crate::{
-    log::events::http_events::HttpEvents, file_writer::FileDownloader,
-    log::{debuglog::productor::DebugLogProductor, on_event::OnEventHttp},
-    web::http::http_client::HttpClient
-};
-
+use cli::CLI;
 
 fn main() {
-    let args = WgetArgs::parse_args();
-
-    let mut http_client = HttpClient::from_url(&args.url).expect("http客户端创建失败");
-
-    let content_length = http_client.get_file_length().unwrap();
-    let mut content_stream = http_client.get_content_stream().unwrap();
-
-    let mut file_dowloader : FileDownloader = FileDownloader::default(&mut content_stream, args, content_length);
-    if let Ok(downloaded_size) = file_dowloader.download() {
-        ()
-    } 
-    else {
-        println!("下载失败");
-        ()
+    // 创建CLI实例并运行
+    let cli = CLI::new();
+    
+    if let Err(e) = cli.run() {
+        eprintln!("程序执行失败: {}", e);
+        std::process::exit(1);
     }
-    // TODO: 修复下载完成后无法自动退出的问题
 }

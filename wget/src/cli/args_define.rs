@@ -1,6 +1,6 @@
 use clap::Parser;
 
-#[derive(Parser, Debug)]         // 使用 derive 宏自动为结构体 WgetArgs实现 Parser 和 Debug Trait 
+#[derive(Parser, Debug, Clone)]         
 #[command(name = "wget-DragonOS")]
 #[command(author = "Yuming")]
 #[command(version = "0.1.0")]
