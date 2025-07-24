@@ -1,6 +1,12 @@
 use std::{env, fmt::DebugTuple, fs::File, net::TcpStream, path::{Path, PathBuf}};
 
-use crate::{events::http_events::HttpEvents, log::{debuglog::productor::DebugLogProductor, on_event::{self, OnEventHttp}}, cli::WgetArgs};
+use crate::{
+    log::{
+        debuglog::productor::DebugLogProductor,
+        on_event::{self, OnEventHttp},
+        events::http_events::HttpEvents,
+    },
+    cli::WgetArgs};
 use std::io::{Read, Seek, SeekFrom, Write};
 
 

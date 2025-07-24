@@ -5,7 +5,11 @@ mod file_writer;
 mod events;
 use cli::WgetArgs;
 
-use crate::{events::http_events::HttpEvents, file_writer::FileDownloader, log::{debuglog::productor::DebugLogProductor, on_event::OnEventHttp}, web::http::http_client::HttpClient};
+use crate::{
+    log::events::http_events::HttpEvents, file_writer::FileDownloader,
+    log::{debuglog::productor::DebugLogProductor, on_event::OnEventHttp},
+    web::http::http_client::HttpClient
+};
 
 
 fn main() {

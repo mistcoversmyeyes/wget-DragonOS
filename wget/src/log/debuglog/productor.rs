@@ -1,4 +1,4 @@
-pub use crate::events::http_events::HttpEvents;
+pub use crate::log::events::http_events::HttpEvents;
 pub use crate::log::on_event::{OnEventHttp};
 use std::sync::OnceLock;
 
