@@ -30,7 +30,12 @@ impl<'a> FileDownloader<'a> {
     /// 对于以上示例，保存文件的路径为 "/home/username/tools/index.html"
     /// 
     pub fn default(stream: &'a mut dyn Read, para: WgetArgs,content_length: usize) -> Self {
-        let directory_prefix: PathBuf = env::current_dir().unwrap();
+        // 尝试获取命令行选项 '-P' 传入的文件保存目录，支持相对路径与绝对路径，支持win/linux两大平台的路径
+        // 如果没有传入的路径，默认为运行 wget 的时候所在的工作目录
+        let directory_prefix: PathBuf = match para.directory_prefix {
+            Some(prefix) => PathBuf::from_str(&prefix).expect("输入的文件保存目录格式有误！"),
+            None => env::current_dir().unwrap(),
+        };
         // 尝试获取 命令行选项 '-O' 传入的文件名，如果没有传入的文件名，那么从 url 中获取
         let file_name = match para.output_file_name {
             Some(name) => name ,
@@ -47,7 +52,7 @@ impl<'a> FileDownloader<'a> {
         let file_path: PathBuf = directory_prefix.join(file_name);
 
         // 创建文件
-        let destination: File = File::create(file_path).unwrap();
+        let destination: File = match File::create_new(file_path).expect("创建本地文件失败，请检查指定的路径是否合法。\n若路径合法，请检查是否已经存在文件，不允许覆盖下载。");
 
         FileDownloader {
             source: stream,
