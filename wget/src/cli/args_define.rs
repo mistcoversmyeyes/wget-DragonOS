@@ -26,6 +26,10 @@ pub struct WgetArgs {
     #[arg(short = 'P',long = "prefix",)]
     pub directory_prefix: Option<String>,
 
+    // 选项3：断点续传
+    #[arg(short = 'c', long = "continue", default_value = "false")]
+    pub continue_download: bool,
+
     // 选项x：示例选项
     // #[arg(short = 'x',long = "xxxx", default_value = "xxxx",)]
     // pub arg_name: Option<T>
@@ -47,5 +51,10 @@ impl WgetArgs {
     // 获取输出文件名
     pub fn get_output_file_name(&self) -> Option<&str> {
         self.output_file_name.as_deref()
+    }
+    
+    // 获取是否启用断点续传
+    pub fn is_continue_download(&self) -> bool {
+        self.continue_download
     }
 }
