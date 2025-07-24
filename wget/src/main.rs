@@ -1,9 +1,9 @@
-mod parameter_process;
+mod cli;
 mod log;
 mod web;
 mod file_writer;
 mod events;
-use parameter_process::WgetArgs;
+use cli::WgetArgs;
 
 use crate::{events::http_events::HttpEvents, file_writer::FileDownloader, log::{debuglog::productor::DebugLogProductor, on_event::OnEventHttp}, web::http::http_client::HttpClient};
 
