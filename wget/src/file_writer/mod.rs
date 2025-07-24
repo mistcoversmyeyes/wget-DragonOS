@@ -4,7 +4,7 @@ use crate::{
     log::{
         debuglog::productor::DebugLogProductor,
         on_event::{self, OnEventHttp},
-        events::http_events::HttpEvents,
+        events::HttpEvents,
     },
     cli::WgetArgs};
 use std::io::{Read, Seek, SeekFrom, Write};

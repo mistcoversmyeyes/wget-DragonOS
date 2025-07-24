@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use crate::log::{
     on_event::OnEventHttp,
-    events::http_events::HttpEvents,
+    events::HttpEvents,
     debuglog::productor::DebugLogProductor,
 };
 

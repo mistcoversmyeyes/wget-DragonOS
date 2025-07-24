@@ -4,7 +4,7 @@ pub use args_define::WgetArgs;          // 表示当前目录模块公开了子�
 
 use crate::log::debuglog::productor::DebugLogProductor;
 use crate::log::on_event::OnEventHttp;
-use crate::log::events::http_events::HttpEvents;
+use crate::log::events::HttpEvents;
 use crate::web::http::http_client::HttpClient;         
 use crate::file_writer::FileDownloader; 
 
