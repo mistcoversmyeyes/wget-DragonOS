@@ -23,13 +23,19 @@ impl<'a> FileDownloader<'a> {
     /// ```
     /// 对于以上示例，保存文件的路径为 "/home/username/tools/index.html"
     /// 
-    pub fn from_scratch(stream: &'a mut dyn Read, para: WgetArgs,content_length: usize) -> Self {
+    pub fn default(stream: &'a mut dyn Read, para: WgetArgs,content_length: usize) -> Self {
         let directory_prefix: PathBuf = env::current_dir().unwrap();
-        // 获取 URL 最后的文件名部分
-        let file_name = para.url
-            .rsplit('/')
-            .next()
-            .expect("自动获取文件名失败"); 
+        // 尝试获取 命令行选项 '-O' 传入的文件名，如果没有传入的文件名，那么从 url 中获取
+        let file_name = match para.output_file_name {
+            Some(name) => name ,
+            None => {
+                para.url
+                .rsplit('/')
+                .next()
+                .expect("自动获取文件名失败")
+                .to_string()
+            },
+        };
         
         // 拼接目录前缀和文件名为完整文件路径
         let file_path: PathBuf = directory_prefix.join(file_name);
@@ -54,7 +60,7 @@ impl<'a> FileDownloader<'a> {
     }
 
 
-    pub fn copy_file(&mut self) -> std::io::Result<usize> {
+    pub fn download(&mut self) -> std::io::Result<usize> {
         // 定位到断点
         self.destination.seek(SeekFrom::Start(self.offset as u64))?;
         let mut total_written: usize = 0usize;
