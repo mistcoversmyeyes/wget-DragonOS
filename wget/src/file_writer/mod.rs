@@ -1,9 +1,9 @@
-use std::{env, fmt::DebugTuple, fs::File, net::TcpStream, path::{Path, PathBuf}};
+use std::{env, fs::File, path::PathBuf};
 
 use crate::{
     log::{
         debuglog::productor::DebugLogProductor,
-        on_event::{self, OnEventHttp},
+        on_event::OnEventHttp,
         events::HttpEvents,
     },
     cli::WgetArgs};
@@ -20,6 +20,7 @@ pub struct FileDownloader<'a> {
 
 
 impl<'a> FileDownloader<'a> {
+    /// 全新下载构造函数，用于从头开始的下载
     /// 给定一个已经去除了响应头内容的 网络流 `stream`, 命令行参数解析结果 `para` 和 获取到的文件内容大小 `content_length`
     /// 创建一个包含源网络流，目的文件，文件大小，已经下载的大小(offset)的执行下载工作的结构体。
     /// 默认从命令行参数的 <URL> 获取文件名，文件名为 <URL>字段的最后一个 '/' 后面的内容
@@ -29,11 +30,11 @@ impl<'a> FileDownloader<'a> {
     /// ```
     /// 对于以上示例，保存文件的路径为 "/home/username/tools/index.html"
     /// 
-    pub fn default(stream: &'a mut dyn Read, para: WgetArgs,content_length: usize) -> Self {
+    pub fn new(stream: &'a mut dyn Read, para: WgetArgs, content_length: usize) -> Self {
         // 尝试获取命令行选项 '-P' 传入的文件保存目录，支持相对路径与绝对路径，支持win/linux两大平台的路径
         // 如果没有传入的路径，默认为运行 wget 的时候所在的工作目录
         let directory_prefix: PathBuf = match para.directory_prefix {
-            Some(prefix) => PathBuf::from_str(&prefix).expect("输入的文件保存目录格式有误！"),
+            Some(prefix) => PathBuf::from(prefix),
             None => env::current_dir().unwrap(),
         };
         // 尝试获取 命令行选项 '-O' 传入的文件名，如果没有传入的文件名，那么从 url 中获取
@@ -52,13 +53,14 @@ impl<'a> FileDownloader<'a> {
         let file_path: PathBuf = directory_prefix.join(file_name);
 
         // 创建文件
-        let destination: File = match File::create_new(file_path).expect("创建本地文件失败，请检查指定的路径是否合法。\n若路径合法，请检查是否已经存在文件，不允许覆盖下载。");
-
+        let destination: File = File::create_new(file_path)
+                                    .expect("创建本地文件失败，请检查指定的路径是否合法。\n若路径合法，请检查是否已经存在文件，不允许覆盖下载。");
+        
         FileDownloader {
             source: stream,
             destination,
             content_length,
-            offset: 0 ,
+            offset: 0,
         }
     }
 
