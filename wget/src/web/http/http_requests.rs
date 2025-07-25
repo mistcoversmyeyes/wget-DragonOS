@@ -1,13 +1,13 @@
 use std::fmt::Display;
 
-pub struct HttpRequestNew<'a> {
+pub struct HttpRequest<'a> {
     method: HttpMethod,
     path_to_file: &'a str,
     protocol_version: HttpProtocolVersion,
     request_header: HttpRequestHeader,
 }
 
-impl<'a> HttpRequestNew<'a> {
+impl<'a> HttpRequest<'a> {
     /// 创建一个新的 HTTP 请求
     pub fn new(
         method: HttpMethod,
@@ -48,42 +48,42 @@ impl<'a> HttpRequestNew<'a> {
     }
 }
 
-pub enum HttpRequest<'a> {
-    GET {
-        path: &'a str,
-        protocol_version: HttpProtocolVersion,
-        request_head: &'a str,
-    },
-    POST {
-        path: &'a str,
-        protocol_version: HttpProtocolVersion,
-        request_head: &'a str,
-    },
-    HEAD {
-        path: &'a str,
-        protocol_version: HttpProtocolVersion,
-        request_head: &'a str,
-    },
-}
+// pub enum HttpRequest<'a> {
+//     GET {
+//         path: &'a str,
+//         protocol_version: HttpProtocolVersion,
+//         request_head: &'a str,
+//     },
+//     POST {
+//         path: &'a str,
+//         protocol_version: HttpProtocolVersion,
+//         request_head: &'a str,
+//     },
+//     HEAD {
+//         path: &'a str,
+//         protocol_version: HttpProtocolVersion,
+//         request_head: &'a str,
+//     },
+// }
+
+// impl Display for HttpRequest<'_> {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Self::GET { path, protocol_version, request_head } => {
+//                 write!(f, "GET {} {}\r\n{}\r\n\r\n", path, protocol_version, request_head)
+//             }
+//             Self::POST { path, protocol_version, request_head } => {
+//                 write!(f, "POST {} {}\r\n{}\r\n\r\n", path, protocol_version, request_head)
+//             }
+//             Self::HEAD { path, protocol_version, request_head } => {
+//                 write!(f, "HEAD {} {}\r\n{}\r\n\r\n", path, protocol_version, request_head)
+//             }
+//         }
+//     }
+// }
+
 
 impl Display for HttpRequest<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::GET { path, protocol_version, request_head } => {
-                write!(f, "GET {} {}\r\n{}\r\n\r\n", path, protocol_version, request_head)
-            }
-            Self::POST { path, protocol_version, request_head } => {
-                write!(f, "POST {} {}\r\n{}\r\n\r\n", path, protocol_version, request_head)
-            }
-            Self::HEAD { path, protocol_version, request_head } => {
-                write!(f, "HEAD {} {}\r\n{}\r\n\r\n", path, protocol_version, request_head)
-            }
-        }
-    }
-}
-
-
-impl Display for HttpRequestNew<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {} {}\r\n{}\r\n", self.method, self.path_to_file, self.protocol_version, self.request_header)
     }
@@ -217,7 +217,7 @@ mod tests {
             },
         ];
         
-        let req = HttpRequestNew::get("/index.html", headers);
+        let req = HttpRequest::get("/index.html", headers);
         // 修正：标准HTTP请求应该以 \r\n\r\n 结尾（请求头和请求体之间的分隔）
         let expected = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: wget/1.0\r\n\r\n";
         assert_eq!(req.to_string(), expected);
@@ -240,7 +240,7 @@ mod tests {
             },
         ];
         
-        let req = HttpRequestNew::post("/api/submit", headers);
+        let req = HttpRequest::post("/api/submit", headers);
         let expected = "POST /api/submit HTTP/1.1\r\nHost: example.com\r\nContent-Type: application/json\r\nContent-Length: 123\r\n\r\n";
         assert_eq!(req.to_string(), expected);
     }
@@ -254,14 +254,14 @@ mod tests {
             },
         ];
         
-        let req = HttpRequestNew::head("/", headers);
+        let req = HttpRequest::head("/", headers);
         let expected = "HEAD / HTTP/1.1\r\nHost: test.com\r\n\r\n";
         assert_eq!(req.to_string(), expected);
     }
 
     #[test]
     fn test_add_header_functionality() {
-        let mut req = HttpRequestNew::get("/test", vec![]);
+        let mut req = HttpRequest::get("/test", vec![]);
         
         req.add_header("Host".to_string(), "example.com".to_string());
         req.add_header("Accept".to_string(), "text/html".to_string());
@@ -279,7 +279,7 @@ mod tests {
             },
         ];
         
-        let req = HttpRequestNew::new(
+        let req = HttpRequest::new(
             HttpMethod::PUT,
             "/api/users/1",
             HttpProtocolVersion::Http20,
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn test_empty_headers() {
-        let req = HttpRequestNew::get("/empty", vec![]);
+        let req = HttpRequest::get("/empty", vec![]);
         let expected = "GET /empty HTTP/1.1\r\n\r\n";
         assert_eq!(req.to_string(), expected);
     }
