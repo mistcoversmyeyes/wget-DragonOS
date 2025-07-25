@@ -205,46 +205,95 @@ mod tests {
     }
 
     #[test]
-    fn test_http_request_get_display() {
-        let req = HttpRequest::GET {
-            path: "/index.html",
-            protocol_version: HttpProtocolVersion::Http11,
-            request_head: "Host: example.com",
-        };
-        let expected = "GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    fn test_new_http_request_get() {
+        let headers = vec![
+            HttpHeaderField {
+                field_name: "Host".to_string(),
+                field_value: "example.com".to_string(),
+            },
+            HttpHeaderField {
+                field_name: "User-Agent".to_string(),
+                field_value: "wget/1.0".to_string(),
+            },
+        ];
+        
+        let req = HttpRequestNew::get("/index.html", headers);
+        // 修正：标准HTTP请求应该以 \r\n\r\n 结尾（请求头和请求体之间的分隔）
+        let expected = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: wget/1.0\r\n\r\n";
         assert_eq!(req.to_string(), expected);
     }
 
     #[test]
-    fn test_http_request_post_display() {
-        let req = HttpRequest::POST {
-            path: "/submit",
-            protocol_version: HttpProtocolVersion::Http20,
-            request_head: "Host: example.com\r\nContent-Type: application/json",
-        };
-        let expected = "POST /submit HTTP/2.0\r\nHost: example.com\r\nContent-Type: application/json\r\n\r\n";
+    fn test_new_http_request_post() {
+        let headers = vec![
+            HttpHeaderField {
+                field_name: "Host".to_string(),
+                field_value: "example.com".to_string(),
+            },
+            HttpHeaderField {
+                field_name: "Content-Type".to_string(),
+                field_value: "application/json".to_string(),
+            },
+            HttpHeaderField {
+                field_name: "Content-Length".to_string(),
+                field_value: "123".to_string(),
+            },
+        ];
+        
+        let req = HttpRequestNew::post("/api/submit", headers);
+        let expected = "POST /api/submit HTTP/1.1\r\nHost: example.com\r\nContent-Type: application/json\r\nContent-Length: 123\r\n\r\n";
         assert_eq!(req.to_string(), expected);
     }
 
     #[test]
-    fn test_http_request_head_display() {
-        let req = HttpRequest::HEAD {
-            path: "/",
-            protocol_version: HttpProtocolVersion::Http10,
-            request_head: "Host: test.com",
-        };
-        let expected = "HEAD / HTTP/1.0\r\nHost: test.com\r\n\r\n";
+    fn test_new_http_request_head() {
+        let headers = vec![
+            HttpHeaderField {
+                field_name: "Host".to_string(),
+                field_value: "test.com".to_string(),
+            },
+        ];
+        
+        let req = HttpRequestNew::head("/", headers);
+        let expected = "HEAD / HTTP/1.1\r\nHost: test.com\r\n\r\n";
         assert_eq!(req.to_string(), expected);
     }
 
     #[test]
-    fn test_empty_request_head() {
-        let req = HttpRequest::GET {
-            path: "/empty",
-            protocol_version: HttpProtocolVersion::Http09,
-            request_head: "",
-        };
-        let expected = "GET /empty HTTP/0.9\r\n\r\n\r\n";
+    fn test_add_header_functionality() {
+        let mut req = HttpRequestNew::get("/test", vec![]);
+        
+        req.add_header("Host".to_string(), "example.com".to_string());
+        req.add_header("Accept".to_string(), "text/html".to_string());
+        
+        let expected = "GET /test HTTP/1.1\r\nHost: example.com\r\nAccept: text/html\r\n\r\n";
+        assert_eq!(req.to_string(), expected);
+    }
+
+    #[test]
+    fn test_custom_http_request() {
+        let headers = vec![
+            HttpHeaderField {
+                field_name: "Authorization".to_string(),
+                field_value: "Bearer token123".to_string(),
+            },
+        ];
+        
+        let req = HttpRequestNew::new(
+            HttpMethod::PUT,
+            "/api/users/1",
+            HttpProtocolVersion::Http20,
+            headers,
+        );
+        
+        let expected = "PUT /api/users/1 HTTP/2.0\r\nAuthorization: Bearer token123\r\n\r\n";
+        assert_eq!(req.to_string(), expected);
+    }
+
+    #[test]
+    fn test_empty_headers() {
+        let req = HttpRequestNew::get("/empty", vec![]);
+        let expected = "GET /empty HTTP/1.1\r\n\r\n";
         assert_eq!(req.to_string(), expected);
     }
 }
