@@ -119,16 +119,16 @@ impl<'a> HttpRequest<'a> {
 
     /// 创建一个新的 HTTP 请求
     /// 
-    /// # 参数
+    /// ### 参数
     /// - `method`: HTTP 请求方法
     /// - `path`: 请求的资源路径
     /// - `protocol_version`: HTTP 协议版本
     /// - `headers`: 请求头字段列表
     /// 
-    /// # 返回值
+    /// ### 返回值
     /// 返回一个新的 `HttpRequest` 实例
     /// 
-    /// # 示例
+    /// ### 示例
     /// ```rust
     /// let headers = vec![
     ///     HttpHeaderField::new("Host".to_string(), "example.com".to_string())
@@ -140,6 +140,8 @@ impl<'a> HttpRequest<'a> {
     ///     headers
     /// );
     /// ```
+    /// ### TODO 
+    /// 将第四个参数类型改为 `Vec<(String,String)>` 将创建 HttpRequestHeader 的职能转移到内部 调用 HttpRequestHeader::new()
     pub fn new(
         method: HttpMethod,
         path: &'a str,
@@ -424,6 +426,18 @@ pub struct HttpHeaderField {
     pub field_name: String,
     /// 请求头字段值
     pub field_value: String,
+}
+
+impl HttpRequestHeader {
+    
+    /// 从 (字段名，字段值) 的向量中创建 Http 请求头
+    pub fn new (fields: Vec<(String, String)>) ->Self {
+        HttpRequestHeader { fields:  
+            fields
+            .into_iter()
+            .map(|(name,value)| HttpHeaderField {field_name: name.to_owned(), field_value:value.to_owned()})
+            .collect()} 
+    }
 }
 
 impl HttpHeaderField {
