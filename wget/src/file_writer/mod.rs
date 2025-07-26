@@ -183,7 +183,16 @@ impl<'a> FileDownloader<'a> {
         loop {
             let n = self.source.read(&mut buf)?;
             if n == 0 {
-                break;
+                // 检查是否提前遇到EOF
+                let current_downloaded = self.offset + total_written;
+                if current_downloaded < self.file_length {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        format!("网络连接异常：期望下载{}字节，实际只下载了{}字节", 
+                               self.file_length, current_downloaded)
+                    ));
+                }
+                break; // 正常完成
             }
             self.destination.write_all(&buf[..n])?;
             
@@ -207,6 +216,9 @@ impl<'a> FileDownloader<'a> {
                 last_update_time = now;
                 last_downloaded = current_downloaded;
             }
+            if current_downloaded >= self.file_length {
+                break; // 下载完成
+            }
         }
         
         // 下载完成后立即发送最终进度（确保显示100%）
@@ -219,7 +231,7 @@ impl<'a> FileDownloader<'a> {
         };
         
         DebugLogProductor::get_instance().on_event(&HttpEvents::DownloadProgress {
-            downloaded: self.offset + total_written,
+            downloaded: final_downloaded,
             total: self.file_length,
             speed_bps: average_speed,
         });
