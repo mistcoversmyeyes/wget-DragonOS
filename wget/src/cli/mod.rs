@@ -25,34 +25,22 @@ impl CLI {
         // 显示开始下载的信息
         println!("开始下载: {}", self.args.url);
 
+        // 采用统一逻辑对待全新下载和断点续传。
+        // 全新下载是断点为 0 的 断点续传 (如果不考虑文件的存在性)
+        let resume_from = self.get_local_file_size()?;
+
         let mut http_client = HttpClient::from_url(&self.args.url)?;
 
-        let content_length = http_client.get_file_length()
-            .ok_or("无法获取文件大小")?;
-            
-        // 检查是否需要断点续传，如果需要则先检查本地文件大小 
-        // TODO: (improvable):get_local_file_size() 发放本身就考虑到了启用了断点续传，但是本地没有文件或者有文件但是文件为空的情况吧
-        // 也就是这里可以直接优化为下面一行的代码
-        // let resume_from = self.get_local_file_size()?;
-        let resume_from = if self.args.continue_download {
-            // 这里需要实现获取本地文件大小的逻辑
-            self.get_local_file_size()?
-        } else {
-            0
-        };
+        // TODO: 添加检测服务器是否支持断点续传的检测
 
+        let content_length = http_client.get_file_length()
+            .ok_or("ERRO: 无法获取文件大小")?;
         
-        // 根据是否需要断点续传发送不同的HTTP请求
-        let mut content_stream = if resume_from > 0 {
-            println!("从第 {} 字节处开始断点续传", resume_from);
-            // TODO(bugfix):似乎这里请求多了，因为 get_content_stream() 里面还会再调用一次 send_http_get_request()方法。
-            http_client.send_http_get_request_with_range(resume_from); 
-            http_client.get_content_stream()?
-        } else {
-            http_client.get_content_stream()?
-        };
+        // 直接将决定权交给网络模块
+        let mut content_stream = http_client.get_content_stream(resume_from).expect("ERRO: 获取网络文件流失败");
 
         // 使用智能构造函数创建下载器
+        // 在创建下载器的时候判断断点续传有关参数是否设置正确，断点续传共有四种可能情况
         let mut file_downloader = match FileDownloader::smart_new(&mut content_stream, self.args.clone(), content_length) {
             Ok(downloader) => downloader,
             Err(e) => {
@@ -74,6 +62,8 @@ impl CLI {
     }
     
     /// 获取本地文件的当前大小（用于断点续传）
+    /// 如果给定路径下没有文件，那么返回 Ok(0)
+    /// 如果给定路径下已经存在文件，那么返回 Ok(file_len)
     fn get_local_file_size(&self) -> Result<usize, Box<dyn std::error::Error>> {
         use std::{env, path::PathBuf};
         

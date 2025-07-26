@@ -106,15 +106,13 @@ impl HttpClient {
             HttpHeaderField {
                 field_name: "Host".to_string(),
                 field_value: self.host.clone(),
-            }
-        ];
-        
-        if start_byte > 0 {
-            headers.push(HttpHeaderField {
+            },
+            HttpHeaderField {
                 field_name: "Range".to_string(),
                 field_value: format!("bytes={}-", start_byte),
-            });
-        }
+            },
+        ];
+        
         
         let http_get_request = HttpRequest::get(&self.path, headers);
         let request_content: String = http_get_request.to_string();
@@ -181,11 +179,16 @@ impl HttpClient {
     }
 
     /// 返回一个实现了 Read trait 的类型，从响应体开始读取 HTTP 响应内容
-    pub fn get_content_stream(&mut self) -> io::Result<impl Read + '_> {
-        // TODO:添加 `have_downloaded_size` 函数参数，使用send_http_get_request_with_range() 方法替代原有的只能获取整个文件的方法。
-        // 发送获取 文件 的请求信息
-        self.send_http_get_request();
-
+    pub fn get_content_stream(&mut self,have_download_size: usize) -> io::Result<impl Read + '_> {
+        
+        match have_download_size {
+            0 => {
+                self.send_http_get_request();
+            }
+            _ => {
+                self.send_http_get_request_with_range(have_download_size);
+            }
+        }
 
         // 读取响应头，找到 \r\n\r\n 的分界点
         let mut buf = Vec::with_capacity(8192);
