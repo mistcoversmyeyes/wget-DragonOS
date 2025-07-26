@@ -1,5 +1,5 @@
 use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
-use std::io::{self, Result, Read, Write, Cursor};
+use std::io::{Result, Read, Write, Cursor};
 
 use crate::log::{
     on_event::OnEventHttp,
@@ -26,7 +26,6 @@ impl HttpClient {
 
         log_productor.on_event(&HttpEvents::DebugModeSet);
 
-
         log_productor.on_event(&HttpEvents::URLAnalysing(url.to_string()));
         // 假设 url 形如 "http://example.com/path"
         // 去除 "http://" 前缀
@@ -44,13 +43,12 @@ impl HttpClient {
             None => (host_port.to_string(), 80),
         };
 
-
         log_productor.on_event(&HttpEvents::HostAnalysing(domain.clone()));
 
-        let addr : SocketAddr = format!("{}:{}", domain, port)
-        .to_socket_addrs()?
-        .next()
-        .expect(&format!("无法解析域名 {}:{}", domain, port));
+        let addr: SocketAddr = format!("{}:{}", domain, port)
+            .to_socket_addrs()?
+            .next()
+            .expect(&format!("无法解析域名 {}:{}", domain, port));
 
         log_productor.on_event(&HttpEvents::IPAnalysed(addr.ip().to_string()));
 
@@ -102,7 +100,7 @@ impl HttpClient {
     /// 发送带Range头的HTTP GET请求，用于断点续传
     /// `start_byte`: 开始下载的字节位置
     pub fn send_http_get_request_with_range(&mut self, start_byte: usize) {
-        let mut headers = vec![
+        let headers = vec![
             HttpHeaderField {
                 field_name: "Host".to_string(),
                 field_value: self.host.clone(),
@@ -132,9 +130,8 @@ impl HttpClient {
     /// // etc.
     /// // 以上 Headers 的各个字段顺序仅供参考，解析的时候需要使用正则表达式匹配
     /// ```
-    pub fn get_file_length (&mut self) -> Option<usize> {
-
-        // TODO: 添加获取待传数据的长度的事件
+    pub fn get_file_length(&mut self) -> Option<usize> {
+        DebugLogProductor::get_instance().on_event(&HttpEvents::HeadRequestSent);
 
         // 发送获取 响应头部 的请求信息
         self.send_http_head_request();
@@ -147,6 +144,9 @@ impl HttpClient {
         loop {
             match self.stream.read(&mut buf) {
                 Ok(n) => {
+                    if n == 0 {
+                        break;
+                    }
                     // 检查是否读到了末尾，http 响应行 + 响应头 以 \r\n\r\n 结束
                     let cur_str = &*String::from_utf8_lossy(&buf[..n]);
 
@@ -154,8 +154,7 @@ impl HttpClient {
                         // 将读取到的数据追加到 response 字符串中,并结束读取
                         response.push_str(cur_str);
                         break;
-                    }
-                    else {
+                    } else {
                         // 将读取到的数据追加到 response 字符串中
                         response.push_str(cur_str);
                     }
@@ -182,8 +181,7 @@ impl HttpClient {
     }
 
     /// 返回一个实现了 Read trait 的类型，从响应体开始读取 HTTP 响应内容
-    pub fn get_content_stream(&mut self,have_download_size: usize) -> io::Result<impl Read + '_> {
-        
+    pub fn get_content_stream(&mut self, have_download_size: usize) -> Result<impl Read + '_> {
         match have_download_size {
             0 => {
                 self.send_http_get_request();
@@ -211,7 +209,7 @@ impl HttpClient {
 
         let body_start = header_end.unwrap_or(buf.len());
         // 剩余数据为响应体的开头部分
-        let mut body = buf.split_off(body_start);
+        let body = buf.split_off(body_start);
 
         // 创建一个组合流，先读 body，再读 self.stream
         let cursor = Cursor::new(body);
@@ -228,7 +226,6 @@ mod tests {
 use std::io::{Read, Write};
 use std::net::{TcpListener};
 use std::thread;
-use std::io::{Cursor, Chain};
 
     use super::*;
 
@@ -289,6 +286,6 @@ use std::io::{Cursor, Chain};
         client.send_http_head_request();
 
         let len = client.get_file_length();
-        assert_eq!(len , Some(12345));
+        assert_eq!(len, Some(12345));
     }
 }
