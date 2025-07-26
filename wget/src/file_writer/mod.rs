@@ -88,37 +88,54 @@ impl<'a> FileDownloader<'a> {
         let file_path: PathBuf = directory_prefix.join(file_name);
         
         // 根据是否启用断点续传和文件是否存在来决定行为
-        let (destination, offset) = if para.continue_download && file_path.exists() {
-            // 断点续传模式
-            let file = std::fs::OpenOptions::new()
-                .write(true)
-                .append(true)
-                .open(&file_path)?;
+        // 使用 match statement 清晰地处理所有情形
+        let (destination, offset) = match (para.continue_download, file_path.exists()) {
+            // 情形1: 启用断点续传 + 文件存在 → 断点续传
+            (true, true) => {
+                let file = std::fs::OpenOptions::new()
+                    .write(true)
+                    .append(true)
+                    .open(&file_path)?;
+                
+                let metadata = file.metadata()?;
+                let current_size = metadata.len() as usize;
+                
+                // 检查文件完整性
+                if current_size >= content_length {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "本地文件已完整，无需继续下载"
+                    ));
+                }
+                
+                // TODO: 将简单的打印当前状态替换为使用统一的日志产生器打印这一事件的日志
+                println!("检测到本地文件，从 {} 字节处继续下载", current_size);
+                (file, current_size)
+            },
             
-            let metadata = file.metadata()?;
-            let current_size = metadata.len() as usize;
+            // 情形2: 启用断点续传 + 文件不存在 → 全新下载（断点续传退化为普通下载）
+            (true, false) => {
+                let file = File::create(&file_path)?;
+                // TODO: 将简单的打印当前状态替换为使用统一的日志产生器打印这一事件的日志
+                println!("本地文件不存在，开始全新下载");
+                (file, 0)
+            },
             
-            if current_size >= content_length {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "本地文件已完整，无需继续下载"
-                ));
-            }
+            // 情形3: 未启用断点续传 + 文件不存在 → 全新下载
+            (false, false) => {
+                let file = File::create(&file_path)?;
+                // TODO: 将简单的打印当前状态替换为使用统一的日志产生器打印这一事件的日志
+                println!("开始全新下载");
+                (file, 0)
+            },
             
-            println!("检测到本地文件，从 {} 字节处继续下载", current_size);
-            (file, current_size)
-        } else {
-            // 全新下载模式
-            if file_path.exists() && !para.continue_download {
+            // 情形4: 未启用断点续传 + 文件存在 → 报错（避免意外覆盖）
+            (false, true) => {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::AlreadyExists,
                     "文件已存在，使用 -c 选项进行断点续传，或删除现有文件"
                 ));
-            }
-            
-            let file = File::create(&file_path)?;
-            println!("开始全新下载");
-            (file, 0)
+            },
         };
         
         Ok(FileDownloader {
@@ -145,7 +162,7 @@ impl<'a> FileDownloader<'a> {
             self.destination.write_all(&buf[..n])?;
             
             total_written += n as usize;
-            DebugLogProductor::get_instance().on_event(&HttpEvents::Downloading(total_written));
+            DebugLogProductor::get_instance().on_event(&HttpEvents::Downloading(self.offset + total_written));
         }
         Ok(total_written)
     }
