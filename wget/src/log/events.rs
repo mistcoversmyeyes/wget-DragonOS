@@ -17,6 +17,12 @@ pub enum HttpEvents {
     ContentStreamGeted,
     StartDownload,
     Downloading(usize),
+    /// 周期性下载进度更新，包含当前已下载字节数、总大小和下载速度(字节/秒)
+    DownloadProgress { 
+        downloaded: usize, 
+        total: usize, 
+        speed_bps: f64 
+    },
     DownloadFinished(String),
     /// 检测到本地文件，准备断点续传
     ResumeDownloadDetected { local_size: usize, total_size: usize },

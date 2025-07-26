@@ -1,4 +1,4 @@
-use std::{env, fs::File, path::PathBuf};
+use std::{env, fs::File, path::PathBuf, time::{Duration, Instant}};
 
 use crate::{
     log::{
@@ -173,6 +173,13 @@ impl<'a> FileDownloader<'a> {
 
         // 开始下载内容
         DebugLogProductor::get_instance().on_event(&HttpEvents::StartDownload);
+        
+        // 时间和速度跟踪变量
+        let start_time = Instant::now();
+        let mut last_update_time = start_time;
+        let mut last_downloaded = self.offset;
+        let update_interval = Duration::from_secs(1); // 1秒更新间隔
+        
         loop {
             let n = self.source.read(&mut buf)?;
             if n == 0 {
@@ -181,8 +188,42 @@ impl<'a> FileDownloader<'a> {
             self.destination.write_all(&buf[..n])?;
             
             total_written += n as usize;
-            DebugLogProductor::get_instance().on_event(&HttpEvents::Downloading(self.offset + total_written));
+            let current_downloaded = self.offset + total_written;
+            let now = Instant::now();
+            
+            // 检查是否需要更新进度（每秒一次）
+            if now.duration_since(last_update_time) >= update_interval {
+                let time_elapsed = now.duration_since(last_update_time).as_secs_f64();
+                let bytes_since_last_update = current_downloaded - last_downloaded;
+                let speed_bps = bytes_since_last_update as f64 / time_elapsed;
+                
+                // 发送进度更新事件
+                DebugLogProductor::get_instance().on_event(&HttpEvents::DownloadProgress {
+                    downloaded: current_downloaded,
+                    total: self.file_length,
+                    speed_bps,
+                });
+                
+                last_update_time = now;
+                last_downloaded = current_downloaded;
+            }
         }
+        
+        // 下载完成后立即发送最终进度（确保显示100%）
+        let final_downloaded = self.offset + total_written;
+        let final_time_elapsed = Instant::now().duration_since(start_time).as_secs_f64();
+        let average_speed = if final_time_elapsed > 0.0 {
+            total_written as f64 / final_time_elapsed
+        } else {
+            0.0
+        };
+        
+        DebugLogProductor::get_instance().on_event(&HttpEvents::DownloadProgress {
+            downloaded: self.offset + total_written,
+            total: self.file_length,
+            speed_bps: average_speed,
+        });
+        
         Ok(total_written)
     }
 }

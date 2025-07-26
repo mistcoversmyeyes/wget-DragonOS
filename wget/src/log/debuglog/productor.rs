@@ -64,6 +64,15 @@ impl OnEventHttp for DebugLogProductor {
             HttpEvents::Downloading(bytes) => {
                 println!("DEBUG: 已下载 {} 字节...", bytes);
             }
+            HttpEvents::DownloadProgress { downloaded, total, speed_bps } => {
+                let progress_percent = if *total > 0 {
+                    (*downloaded as f64 / *total as f64) * 100.0
+                } else {
+                    0.0
+                };
+                println!("下载进度: {}/{} 字节 ({:.1}%) - 速度: {:.0} B/s", 
+                         downloaded, total, progress_percent, speed_bps);
+            }
             HttpEvents::DownloadFinished(filename) => {
                 println!("DEBUG: 下载完成，保存为 {}", filename);
             }
