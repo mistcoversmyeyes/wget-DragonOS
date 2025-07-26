@@ -27,13 +27,13 @@ impl CLI {
         println!("开始处理下载任务: {}", self.args.url);
 
         // 采用统一逻辑对待全新下载和断点续传。
-        let resume_from = self.get_local_file_size()?;
+        let resume_from = self.get_local_content_length()?;
 
         let mut http_client = HttpClient::from_url(&self.args.url)?;
 
         // TODO(web): 添加检测服务器是否支持断点续传的检测
 
-        let content_length = http_client.get_file_length()
+        let file_length = http_client.get_file_length()
             .ok_or("ERRO: 无法获取文件大小")?;
         
         // 直接将决定权交给网络模块
@@ -41,7 +41,7 @@ impl CLI {
 
         // 使用智能构造函数创建下载器
         // 在创建下载器的时候判断断点续传有关参数是否设置正确，断点续传共有四种可能情况
-        let mut file_downloader = match FileDownloader::smart_new(&mut content_stream, self.args.clone(), content_length) {
+        let mut file_downloader = match FileDownloader::smart_new(&mut content_stream, self.args.clone(), file_length) {
             Ok(downloader) => downloader,
             Err(e) => {
                 println!("创建下载器失败: {}", e);
@@ -64,7 +64,7 @@ impl CLI {
     /// 获取本地文件的当前大小（用于断点续传）
     /// 如果给定路径下没有文件，那么返回 Ok(0)
     /// 如果给定路径下已经存在文件，那么返回 Ok(file_len)
-    fn get_local_file_size(&self) -> Result<usize, Box<dyn std::error::Error>> {
+    fn get_local_content_length(&self) -> Result<usize, Box<dyn std::error::Error>> {
         use std::{env, path::PathBuf};
         
         // 获取文件路径（与FileDownloader中相同的逻辑）
@@ -88,10 +88,10 @@ impl CLI {
         
         if file_path.exists() {
             let metadata = std::fs::metadata(file_path)?;
-            // TODO(log): 定义一个事件 GetLocalFileState 用于表示本地文件信息被解析的事件
+            // TODO(log): 定义一个事件 GetLocalContentlength 用于表示本地文件信息被解析的事件
             Ok(metadata.len() as usize)
         } else {
-            // TODO(log): 定义一个事件 GetLocalFileState 用于表示本地文件信息被解析的事件
+            // TODO(log): 定义一个事件 GetLocalContentlength 用于表示本地文件信息被解析的事件
             Ok(0)
         }
     }

@@ -13,7 +13,7 @@ use std::io::{Read, Seek, SeekFrom, Write};
 pub struct FileDownloader<'a> {
     source : &'a mut dyn Read,
     destination : File,
-    content_length: usize,
+    file_length: usize,
     offset : usize,            //为断点续传预留的
 
 }
@@ -21,7 +21,7 @@ pub struct FileDownloader<'a> {
 
 impl<'a> FileDownloader<'a> {
     /// 全新下载构造函数，用于从头开始的下载
-    /// 给定一个已经去除了响应头内容的 网络流 `stream`, 命令行参数解析结果 `para` 和 获取到的文件内容大小 `content_length`
+    /// 给定一个已经去除了响应头内容的 网络流 `stream`, 命令行参数解析结果 `para` 和 获取到的文件内容大小 `file_length`
     /// 创建一个包含源网络流，目的文件，文件大小，已经下载的大小(offset)的执行下载工作的结构体。
     /// 默认从命令行参数的 <URL> 获取文件名，文件名为 <URL>字段的最后一个 '/' 后面的内容
     /// ``` bash
@@ -30,7 +30,7 @@ impl<'a> FileDownloader<'a> {
     /// ```
     /// 对于以上示例，保存文件的路径为 "/home/username/tools/index.html"
     /// 
-    pub fn new(stream: &'a mut dyn Read, para: WgetArgs, content_length: usize) -> Self {
+    pub fn new(stream: &'a mut dyn Read, para: WgetArgs, file_length: usize) -> Self {
         // 尝试获取命令行选项 '-P' 传入的文件保存目录，支持相对路径与绝对路径，支持win/linux两大平台的路径
         // 如果没有传入的路径，默认为运行 wget 的时候所在的工作目录
         let directory_prefix: PathBuf = match para.directory_prefix {
@@ -59,7 +59,7 @@ impl<'a> FileDownloader<'a> {
         FileDownloader {
             source: stream,
             destination,
-            content_length,
+            file_length,
             offset: 0,
         }
     }
@@ -67,7 +67,7 @@ impl<'a> FileDownloader<'a> {
     /// 智能构造函数，根据命令行参数自动选择全新下载或断点续传
     /// 如果设置了 `-c` 或 `--continue` 参数且本地文件存在，则进行断点续传
     /// 否则进行全新下载
-    pub fn smart_new(stream: &'a mut dyn Read, para: WgetArgs, content_length: usize) -> std::io::Result<Self> {
+    pub fn smart_new(stream: &'a mut dyn Read, para: WgetArgs, file_length: usize) -> std::io::Result<Self> {
         // 获取文件路径
         let directory_prefix: PathBuf = match para.directory_prefix.as_ref() {
             Some(prefix) => PathBuf::from(prefix),
@@ -116,7 +116,7 @@ impl<'a> FileDownloader<'a> {
                 let current_size = metadata.len() as usize;
                 
                 // 检查文件完整性
-                if current_size >= content_length {
+                if current_size >= file_length {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
                         "本地文件已完整，无需继续下载"
@@ -156,7 +156,7 @@ impl<'a> FileDownloader<'a> {
         Ok(FileDownloader {
             source: stream,
             destination,
-            content_length,
+            file_length,
             offset,
         })
     }
