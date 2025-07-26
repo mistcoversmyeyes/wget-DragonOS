@@ -117,35 +117,39 @@ impl<'a> FileDownloader<'a> {
                 
                 // 检查文件完整性
                 if current_size >= file_length {
+                    DebugLogProductor::get_instance().on_event(&HttpEvents::FileAlreadyComplete { file_size: current_size });
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
                         "本地文件已完整，无需继续下载"
                     ));
                 }
                 
-                // TODO: 将简单的打印当前状态替换为使用统一的日志产生器打印这一事件的日志
-                println!("检测到本地文件，从 {} 字节处继续下载", current_size);
+                DebugLogProductor::get_instance().on_event(&HttpEvents::ResumeDownloadDetected { 
+                    local_size: current_size, 
+                    total_size: file_length 
+                });
                 (file, current_size)
             },
             
             // 情形2: 启用断点续传 + 文件不存在 → 全新下载（断点续传退化为普通下载）
             (true, false) => {
                 let file = File::create(&file_path)?;
-                // TODO: 将简单的打印当前状态替换为使用统一的日志产生器打印这一事件的日志
-                println!("本地文件不存在，开始全新下载");
+                DebugLogProductor::get_instance().on_event(&HttpEvents::NewDownloadStarted);
                 (file, 0)
             },
             
             // 情形3: 未启用断点续传 + 文件不存在 → 全新下载
             (false, false) => {
                 let file = File::create(&file_path)?;
-                // TODO: 将简单的打印当前状态替换为使用统一的日志产生器打印这一事件的日志
-                println!("开始全新下载");
+                DebugLogProductor::get_instance().on_event(&HttpEvents::NewDownloadStarted);
                 (file, 0)
             },
             
             // 情形4: 未启用断点续传 + 文件存在 → 报错（避免意外覆盖）
             (false, true) => {
+                DebugLogProductor::get_instance().on_event(&HttpEvents::FileExistsWithoutResume { 
+                    file_path: file_path.to_string_lossy().to_string() 
+                });
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::AlreadyExists,
                     "文件已存在，使用 -c 选项进行断点续传，或删除现有文件"

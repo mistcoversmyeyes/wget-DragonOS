@@ -23,8 +23,7 @@ impl CLI {
     /// 这个函数按照 命令行参数解析 --> http连接建立并发送请求获取文件流 --> 创建下载器将网络流（实现了 Read trait）拷贝到本地文件中。
     pub fn run(&self) -> Result<usize, Box<dyn std::error::Error>> {
         // 显示开始下载的信息
-        // TODO(log): 替换为对 HttpEvents::StartToProcessDownload(self.args.url) 事件的响应
-        println!("开始处理下载任务: {}", self.args.url);
+        DebugLogProductor::get_instance().on_event(&HttpEvents::StartToProcessDownload(self.args.url.clone()));
 
         // 采用统一逻辑对待全新下载和断点续传。
         let resume_from = self.get_local_content_length()?;
@@ -34,10 +33,10 @@ impl CLI {
         // TODO(web): 添加检测服务器是否支持断点续传的检测
 
         let file_length = http_client.get_file_length()
-            .ok_or("ERRO: 无法获取文件大小")?;
+            .ok_or("无法获取文件大小")?;
         
         // 直接将决定权交给网络模块
-        let mut content_stream = http_client.get_content_stream(resume_from).expect("ERRO: 获取网络文件流失败");
+        let mut content_stream = http_client.get_content_stream(resume_from)?;
 
         // 使用智能构造函数创建下载器
         // 在创建下载器的时候判断断点续传有关参数是否设置正确，断点续传共有四种可能情况
@@ -88,10 +87,11 @@ impl CLI {
         
         if file_path.exists() {
             let metadata = std::fs::metadata(file_path)?;
-            // TODO(log): 定义一个事件 GetLocalContentlength 用于表示本地文件信息被解析的事件
-            Ok(metadata.len() as usize)
+            let file_size = metadata.len() as usize;
+            DebugLogProductor::get_instance().on_event(&HttpEvents::GetLocalContentlength(file_size));
+            Ok(file_size)
         } else {
-            // TODO(log): 定义一个事件 GetLocalContentlength 用于表示本地文件信息被解析的事件
+            DebugLogProductor::get_instance().on_event(&HttpEvents::GetLocalContentlength(0));
             Ok(0)
         }
     }

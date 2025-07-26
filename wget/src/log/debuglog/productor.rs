@@ -25,6 +25,12 @@ impl OnEventHttp for DebugLogProductor {
             HttpEvents::DebugModeSet => {
                 println!("DEBUG: 设置为调试模式");
             }
+            HttpEvents::StartToProcessDownload(url) => {
+                println!("DEBUG: 开始处理下载任务: {}", url);
+            }
+            HttpEvents::GetLocalContentlength(size) => {
+                println!("DEBUG: 本地文件大小: {}B", size);
+            }
             HttpEvents::URLAnalysing(url) =>{
                 println!("DEBUG: 解析URL: {}",url);
             }
@@ -43,6 +49,9 @@ impl OnEventHttp for DebugLogProductor {
             HttpEvents::HTTPRequestSend(req) => {
                 println!("DEBUG: 发送 HTTP 请求:\n{}", req);
             }
+            HttpEvents::HeadRequestSent => {
+                println!("DEBUG: 发送 HEAD 请求获取文件元信息");
+            }
             HttpEvents::ContentLengthAnalysed(file_size) => {
                 println!("DEBUG: 文件大小为: {}B", file_size);
             }
@@ -57,6 +66,18 @@ impl OnEventHttp for DebugLogProductor {
             }
             HttpEvents::DownloadFinished(filename) => {
                 println!("DEBUG: 下载完成，保存为 {}", filename);
+            }
+            HttpEvents::ResumeDownloadDetected { local_size, total_size } => {
+                println!("DEBUG: 检测到本地文件，从 {} 字节处继续下载 (总大小: {}B)", local_size, total_size);
+            }
+            HttpEvents::NewDownloadStarted => {
+                println!("DEBUG: 开始全新下载");
+            }
+            HttpEvents::FileAlreadyComplete { file_size } => {
+                println!("DEBUG: 本地文件已完整 ({}B)，无需继续下载", file_size);
+            }
+            HttpEvents::FileExistsWithoutResume { file_path } => {
+                println!("DEBUG: 文件已存在但未启用断点续传: {}", file_path);
             }
         }
     }
@@ -129,5 +150,52 @@ mod tests {
     fn test_on_download_finished_event() {
         let productor = DebugLogProductor::get_instance();
         productor.on_event(&HttpEvents::DownloadFinished("output.txt".to_string()));
+    }
+
+    #[test]
+    fn test_on_start_to_process_download_event() {
+        let productor = DebugLogProductor::get_instance();
+        productor.on_event(&HttpEvents::StartToProcessDownload("http://example.com/file.txt".to_string()));
+    }
+
+    #[test]
+    fn test_on_get_local_contentlength_event() {
+        let productor = DebugLogProductor::get_instance();
+        productor.on_event(&HttpEvents::GetLocalContentlength(1024));
+    }
+
+    #[test]
+    fn test_on_head_request_sent_event() {
+        let productor = DebugLogProductor::get_instance();
+        productor.on_event(&HttpEvents::HeadRequestSent);
+    }
+
+    #[test]
+    fn test_on_resume_download_detected_event() {
+        let productor = DebugLogProductor::get_instance();
+        productor.on_event(&HttpEvents::ResumeDownloadDetected { 
+            local_size: 512, 
+            total_size: 1024 
+        });
+    }
+
+    #[test]
+    fn test_on_new_download_started_event() {
+        let productor = DebugLogProductor::get_instance();
+        productor.on_event(&HttpEvents::NewDownloadStarted);
+    }
+
+    #[test]
+    fn test_on_file_already_complete_event() {
+        let productor = DebugLogProductor::get_instance();
+        productor.on_event(&HttpEvents::FileAlreadyComplete { file_size: 1024 });
+    }
+
+    #[test]
+    fn test_on_file_exists_without_resume_event() {
+        let productor = DebugLogProductor::get_instance();
+        productor.on_event(&HttpEvents::FileExistsWithoutResume { 
+            file_path: "/path/to/file.txt".to_string() 
+        });
     }
 }
