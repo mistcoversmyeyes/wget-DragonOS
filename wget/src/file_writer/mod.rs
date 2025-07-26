@@ -87,6 +87,21 @@ impl<'a> FileDownloader<'a> {
         
         let file_path: PathBuf = directory_prefix.join(file_name);
         
+        // 预检查：确保目标目录存在且可写
+        if let Some(parent_dir) = file_path.parent() {
+            if !parent_dir.exists() {
+                std::fs::create_dir_all(parent_dir)?;
+            }
+        }
+        
+        // 预检查：如果目标路径存在但是目录，返回错误
+        if file_path.exists() && file_path.is_dir() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::IsADirectory,
+                format!("目标路径是目录: {}", file_path.display())
+            ));
+        }
+        
         // 根据是否启用断点续传和文件是否存在来决定行为
         // 使用 match statement 清晰地处理所有情形
         let (destination, offset) = match (para.continue_download, file_path.exists()) {
