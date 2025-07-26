@@ -23,25 +23,24 @@ impl CLI {
     /// 这个函数按照 命令行参数解析 --> http连接建立并发送请求获取文件流 --> 创建下载器将网络流（实现了 Read trait）拷贝到本地文件中。
     pub fn run(&self) -> Result<usize, Box<dyn std::error::Error>> {
         // 显示开始下载的信息
-        println!("开始下载: {}", self.args.url);
+        DebugLogProductor::get_instance().on_event(&HttpEvents::StartToProcessDownload(self.args.url.clone()));
 
         // 采用统一逻辑对待全新下载和断点续传。
-        // 全新下载是断点为 0 的 断点续传 (如果不考虑文件的存在性)
-        let resume_from = self.get_local_file_size()?;
+        let resume_from = self.get_local_content_length()?;
 
         let mut http_client = HttpClient::from_url(&self.args.url)?;
 
-        // TODO: 添加检测服务器是否支持断点续传的检测
+        // TODO(web): 添加检测服务器是否支持断点续传的检测
 
-        let content_length = http_client.get_file_length()
-            .ok_or("ERRO: 无法获取文件大小")?;
+        let file_length = http_client.get_file_length()
+            .ok_or("无法获取文件大小")?;
         
         // 直接将决定权交给网络模块
-        let mut content_stream = http_client.get_content_stream(resume_from).expect("ERRO: 获取网络文件流失败");
+        let mut content_stream = http_client.get_content_stream(resume_from)?;
 
         // 使用智能构造函数创建下载器
         // 在创建下载器的时候判断断点续传有关参数是否设置正确，断点续传共有四种可能情况
-        let mut file_downloader = match FileDownloader::smart_new(&mut content_stream, self.args.clone(), content_length) {
+        let mut file_downloader = match FileDownloader::smart_new(&mut content_stream, self.args.clone(), file_length) {
             Ok(downloader) => downloader,
             Err(e) => {
                 println!("创建下载器失败: {}", e);
@@ -64,7 +63,7 @@ impl CLI {
     /// 获取本地文件的当前大小（用于断点续传）
     /// 如果给定路径下没有文件，那么返回 Ok(0)
     /// 如果给定路径下已经存在文件，那么返回 Ok(file_len)
-    fn get_local_file_size(&self) -> Result<usize, Box<dyn std::error::Error>> {
+    fn get_local_content_length(&self) -> Result<usize, Box<dyn std::error::Error>> {
         use std::{env, path::PathBuf};
         
         // 获取文件路径（与FileDownloader中相同的逻辑）
@@ -88,8 +87,11 @@ impl CLI {
         
         if file_path.exists() {
             let metadata = std::fs::metadata(file_path)?;
-            Ok(metadata.len() as usize)
+            let file_size = metadata.len() as usize;
+            DebugLogProductor::get_instance().on_event(&HttpEvents::GetLocalContentlength(file_size));
+            Ok(file_size)
         } else {
+            DebugLogProductor::get_instance().on_event(&HttpEvents::GetLocalContentlength(0));
             Ok(0)
         }
     }
