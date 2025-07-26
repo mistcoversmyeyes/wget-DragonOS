@@ -133,6 +133,9 @@ impl HttpClient {
     /// // 以上 Headers 的各个字段顺序仅供参考，解析的时候需要使用正则表达式匹配
     /// ```
     pub fn get_file_length (&mut self) -> Option<usize> {
+
+        // TODO: 添加获取待传数据的长度的事件
+
         // 发送获取 响应头部 的请求信息
         self.send_http_head_request();
 

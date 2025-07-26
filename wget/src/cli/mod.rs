@@ -23,15 +23,15 @@ impl CLI {
     /// 这个函数按照 命令行参数解析 --> http连接建立并发送请求获取文件流 --> 创建下载器将网络流（实现了 Read trait）拷贝到本地文件中。
     pub fn run(&self) -> Result<usize, Box<dyn std::error::Error>> {
         // 显示开始下载的信息
-        println!("开始下载: {}", self.args.url);
+        // TODO(log): 替换为对 HttpEvents::StartToProcessDownload(self.args.url) 事件的响应
+        println!("开始处理下载任务: {}", self.args.url);
 
         // 采用统一逻辑对待全新下载和断点续传。
-        // 全新下载是断点为 0 的 断点续传 (如果不考虑文件的存在性)
         let resume_from = self.get_local_file_size()?;
 
         let mut http_client = HttpClient::from_url(&self.args.url)?;
 
-        // TODO: 添加检测服务器是否支持断点续传的检测
+        // TODO(web): 添加检测服务器是否支持断点续传的检测
 
         let content_length = http_client.get_file_length()
             .ok_or("ERRO: 无法获取文件大小")?;
@@ -88,8 +88,10 @@ impl CLI {
         
         if file_path.exists() {
             let metadata = std::fs::metadata(file_path)?;
+            // TODO(log): 定义一个事件 GetLocalFileState 用于表示本地文件信息被解析的事件
             Ok(metadata.len() as usize)
         } else {
+            // TODO(log): 定义一个事件 GetLocalFileState 用于表示本地文件信息被解析的事件
             Ok(0)
         }
     }
